@@ -460,7 +460,17 @@ than `days` days (by `completed_at`). It is registered in `main.ts` for 03:00 ev
 it every minute to see it work. It is idempotent: a second run finds nothing left.
 `"unstable": ["kv", "cron"]` in `deno.json` turns on the flag for every task.
 
-<!-- TODO: paste the log line from your own run. -->
+On my computer, in PowerShell:
+
+```
+> $env:PURGE_SCHEDULE="* * * * *"
+> deno task dev
+Listening on http://localhost:8000/
+{"job":"purge","at":"2026-11-22T14:44:00.018Z","removed":0}
+```
+
+`removed: 0` because no task had been done for more than 30 days; the test of
+`purgeOldDone` shows a run that does remove a row.
 
 ### Bonus 15: Rate limit on login
 
