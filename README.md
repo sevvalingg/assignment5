@@ -465,7 +465,35 @@ folder); `uploads/` is in `.gitignore`. A new upload replaces the old file.
 owner. Tests: the three failures, upload and download of the same bytes, and another user
 gets 404 for both.
 
-<!-- TODO: paste your own curl.exe -F "file=@picture.png;type=image/png" run here. -->
+I tried it on the docs page (`/docs`), logged in with **Authorize**. Uploading a PNG
+screenshot to task 2 gave 201; the saved name is a UUID, not my file's name:
+
+```json
+{
+  "id": 2,
+  "userId": 2,
+  "title": "Welcome! Move me to done when you have read the README.",
+  "status": "todo",
+  "priority": "medium",
+  "dueDate": null,
+  "createdAt": 1795358872,
+  "completedAt": null,
+  "deletedAt": null,
+  "attachment": "dbbc46fc-18ab-409e-b089-737c63217103.png"
+}
+```
+
+`GET /api/tasks/2/attachment` showed the same picture. Uploading a file that is not an
+image gave 415:
+
+```json
+{
+  "error": "only PNG and JPEG images are allowed"
+}
+```
+
+My first try gave 401 for both: I had reloaded the docs page, and Swagger UI forgets the
+token on a reload, so I had to press **Authorize** again.
 
 ### Bonus 13: WebSocket live updates
 
