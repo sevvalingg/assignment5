@@ -488,7 +488,17 @@ includes the user.
 ### Bonus 18: Continuous integration
 
 `.github/workflows/ci.yml` runs `deno fmt --check`, `deno lint`, `deno task check` and
-`deno task test` on every push. <!-- TODO: links to one green and one red run. -->
+`deno task test` on every push and pull request.
+
+- **Green run** (first push of `main`, all 55 tests pass):
+  <https://github.com/sevvalingg/assignment5/actions/runs/45033642125>
+- **Red run** (branch `ci-red-demo`, where I changed `{ ok: true }` to `{ ok: false }` in
+  `tests/health_test.ts` on purpose): fmt, lint and check pass, `deno task test` fails.
+  <https://github.com/sevvalingg/assignment5/actions/runs/45033950461>
+
+The broken test was never merged: I deleted the branch, and `main` stayed green. The first
+run also warned that `actions/checkout@v4` uses Node.js 20, which GitHub is retiring, so I
+moved it to `actions/checkout@v5`.
 
 ### Bonus 19: Deploy
 
@@ -500,5 +510,7 @@ Public URL: <!-- TODO --> (`/health` answers `{"ok":true}`)
 
 ### Bonus 20: Git repository
 
-Repository: <!-- TODO: link -->. The instructor has access as announced in CATS.
-`.gitignore` leaves out `.env`, `*.db`, `node_modules` and `uploads/`.
+Repository: <https://github.com/sevvalingg/assignment5> (public, so the instructor can
+open it with the link). `.gitignore` leaves out `.env`, `*.db`, `node_modules` and
+`uploads/`, and `.gitattributes` keeps LF line endings, so `deno fmt --check` passes on
+Windows and in CI. After `git clone` it runs with only Deno: `deno task test`.
