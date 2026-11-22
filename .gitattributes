@@ -1,0 +1,5 @@
+# Keep LF line endings everywhere, so deno fmt --check passes on Windows and in CI.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.db binary
