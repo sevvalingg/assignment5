@@ -1,0 +1,10 @@
+ui
+tests
+scripts
+*.db
+.env
+.env.*
+.git
+.github
+uploads
+node_modules
