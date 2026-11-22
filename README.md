@@ -370,7 +370,33 @@ with "Try it out" on `/auth/login`, copy the token, press Authorize, and then tr
 in `app.ts`), and a bad id in the path is a 404. Tests check that every route and its 401
 is in the document and that `/docs` loads it.
 
-<!-- TODO: a screenshot of /docs, or one sentence on what you tried there. -->
+What I did on <http://localhost:8000/docs>: `POST /auth/register` with "Try it out" (201;
+pressing Execute a second time gave 409 `email already registered`), then
+`POST
+/auth/login`, which gave a JWT. I pasted it into **Authorize** and ran
+`GET /api/tasks`:
+
+```json
+{
+  "items": [
+    {
+      "id": 2,
+      "userId": 2,
+      "title": "Welcome! Move me to done when you have read the README.",
+      "status": "todo",
+      "priority": "medium",
+      "dueDate": null,
+      "createdAt": 1795358872,
+      "completedAt": null,
+      "deletedAt": null,
+      "attachment": null
+    }
+  ],
+  "page": 1,
+  "limit": 20,
+  "total": 1
+}
+```
 
 ### Bonus 9: Roles (RBAC)
 
