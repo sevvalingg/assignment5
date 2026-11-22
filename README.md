@@ -504,7 +504,21 @@ on close. After a create, update, delete, restore or upload, `{ type, task }` go
 user's sockets only. A test starts a real server, opens a socket for user A and one for
 user B, creates a task as A, and checks that A's socket got `created` and B's got nothing.
 
-<!-- TODO: describe what you saw with two browser tabs or a small client. -->
+What I did: I opened a second browser tab on `http://localhost:8000/health` and, in the
+developer console (F12), connected with my token:
+
+```js
+const ws = new WebSocket("ws://localhost:8000/ws?token=<my JWT>");
+ws.onopen = () => console.log("bağlandı");
+ws.onmessage = (e) => console.log("canlı:", e.data);
+```
+
+The console printed `bağlandı`. Then, in the docs tab, I created a task with the title
+"Canlı test". Without reloading anything, the first tab printed at once:
+
+```
+canlı: {"type":"created","task":{"id":3,"userId":2,"title":"Canlı test","status":"todo","priority":"medium","dueDate":null,"createdAt":1795361923,"completedAt":null,"deletedAt":null,"attachment":null}}
+```
 
 ### Bonus 14: A background job with Deno.cron
 
