@@ -232,9 +232,17 @@ and my task is unchanged.
    downloading an update). After I brought Docker Desktop back and waited for "Engine
    running", the same command worked.
 
-## Bonuses claimed
+7. **Deno Deploy did not accept me.** On <https://console.deno.com> the page said:
 
-<!-- Delete every section below that you do not hand in, and fill in the TODOs. -->
+   ```
+   Deno Deploy is winding down and will shut down in April 2027. We are no longer taking on new customers, so it is not possible to create a new organization.
+   ```
+
+   The handout was written before this. The instructor accepted the Docker image on Render
+   or Fly.io instead, so I used Render (Bonus 19). Render then asked for a card even for
+   the free instance, which I had not expected.
+
+## Bonuses claimed
 
 ### Bonus 1: Migrations with Drizzle Kit
 
@@ -642,11 +650,57 @@ moved it to `actions/checkout@v5`.
 
 ### Bonus 19: Deploy
 
-<!-- TODO: fill in after you deployed. The code is ready: DATABASE_URL=libsql://... and
-DATABASE_AUTH_TOKEN go to createClient({ url, authToken }); the PRAGMAs are skipped for
-a hosted database. Uploads (Bonus 12) need a disk, so they do not work on Deno Deploy. -->
+Public URL: <https://taskssevval.onrender.com> (`/health` answers `{"ok":true}`, and the
+documentation is at <https://taskssevval.onrender.com/docs>).
 
-Public URL: <!-- TODO --> (`/health` answers `{"ok":true}`)
+**Why not Deno Deploy.** I first tried <https://console.deno.com>. It refused to create an
+organization: Deno Deploy is winding down (the Deno team is joining Cloudflare) and no
+longer takes new customers. The instructor confirmed that the Docker image on Render or
+Fly.io is accepted instead, so I deployed the same image as in Bonus 17 to **Render**.
+
+**How.**
+
+1. **Database.** A file database cannot live on a platform whose disk is thrown away, so I
+   created a hosted libSQL database on Turso (`libsql://tasks-...turso.io`) and a token
+   for it. `createDb()` passes both to `createClient({ url, authToken })`, and the pool
+   skips the SQLite `PRAGMA`s for a hosted database.
+2. **Render.** New Web Service, connected to `sevvalingg/assignment5`, language Docker (it
+   found the `Dockerfile`), branch `main`, the Free instance. Render needed a card to
+   verify the account, even for the free plan.
+3. **Environment variables** in Render's dashboard: `APP_ENV=production`, `DATABASE_URL`,
+   `DATABASE_AUTH_TOKEN` and `JWT_SECRET` (a random 48-byte value I generated). Render
+   sets `PORT` itself (10000), and `config.ts` reads it. **No secret is in Git**: they
+   exist only in Render's settings. Because `APP_ENV` is `production`, the app would
+   refuse to start with the default `dev-secret`.
+
+The deploy log ended with:
+
+```
+==> Deploying...
+Listening on http://0.0.0.0:10000/ (http://localhost:10000/)
+==> Your service is live 🎉
+```
+
+On start-up `migrate()` created the tables in the Turso database. Then, from my computer:
+
+```
+> curl.exe -s https://taskssevval.onrender.com/health
+{"ok":true}
+> curl.exe -s -X POST https://taskssevval.onrender.com/auth/register -H "content-type: application/json" -d "{\"email\":\"render@example.com\",\"password\":\"secret123\"}"
+{"id":1,"email":"render@example.com","role":"user"}
+> curl.exe -s -X POST https://taskssevval.onrender.com/auth/login -H "content-type: application/json" -d "{\"email\":\"render@example.com\",\"password\":\"secret123\"}"
+{"token":"eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoidXNlciIsInN1YiI6IjEiLCJpYXQiOjE3OTU1MzQ3ODcsImV4cCI6MTc5NTUzODM4N30.30aqCTmOTpONuZBINJrWD4Ndd9-Sna9lg57hfmm8ZWQ"}
+> set TOKEN=eyJhbGciOiJIUzI1NiJ9...
+> curl.exe -s https://taskssevval.onrender.com/api/tasks -H "Authorization: Bearer %TOKEN%"
+{"items":[{"id":1,"userId":1,"title":"Welcome! Move me to done when you have read the README.","status":"todo","priority":"medium","dueDate":null,"createdAt":1795534784,"completedAt":null,"deletedAt":null,"attachment":null}],"page":1,"limit":20,"total":1}
+```
+
+(The token above expired one hour after it was made.)
+
+**Limits of the free plan.** The service sleeps after about 15 minutes without requests,
+so the first request after a pause can take up to a minute. Uploaded images (Bonus 12) are
+written to the container's own disk, which is lost on every deploy or restart; a real app
+would keep them in object storage. Every push to `main` deploys again.
 
 ### Bonus 20: Git repository
 
