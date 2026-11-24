@@ -222,6 +222,16 @@ and my task is unchanged.
    the restart, because they are in `tasks.db` and not in memory. To get a new log line
    for Bonus 10, I sent one more request to `/health`.
 
+6. **Docker could not be reached.** The first `docker build` stopped with:
+
+   ```
+   ERROR: failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine; check if the path is correct and if the daemon is running: open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified.
+   ```
+
+   Docker Desktop was open earlier, but its engine was no longer running (it had been
+   downloading an update). After I brought Docker Desktop back and waited for "Engine
+   running", the same command worked.
+
 ## Bonuses claimed
 
 <!-- Delete every section below that you do not hand in, and fill in the TODOs. -->
@@ -557,11 +567,63 @@ includes the user.
 
 ### Bonus 17: Docker
 
-<!-- TODO: run these and paste the real output (image size too). -->
+The `Dockerfile` starts from `denoland/deno:2.6.3`, copies `deno.json`/`deno.lock` and the
+source, runs `deno cache` and then runs as the non-root user `deno`. The database is
+`/data/tasks.db` on a volume. `.dockerignore` leaves out `ui`, `tests`, `scripts`, `.env`,
+`*.db` and `node_modules`.
 
-    docker build -t tasks-api .
-    docker volume create tasksdata
-    docker run -d --rm --name tasks -p 8000:8000 -v tasksdata:/data tasks-api
+```
+> docker build -t tasks-api .
+[+] Building 3.3s (13/13) FINISHED
+ => CACHED [2/7] WORKDIR /app
+ => CACHED [3/7] COPY deno.json deno.lock* ./
+ => CACHED [4/7] COPY src ./src
+ => CACHED [5/7] COPY drizzle ./drizzle
+ => CACHED [6/7] RUN deno cache src/main.ts
+ => CACHED [7/7] RUN mkdir /data && chown deno:deno /data
+ => => naming to docker.io/library/tasks-api:latest
+
+> docker images tasks-api
+IMAGE              ID             DISK USAGE   CONTENT SIZE
+tasks-api:latest   2b9cadac171b        424MB          108MB
+```
+
+**The data survives a restart.** I registered a user, stopped the container (`--rm`
+removes it), started a brand new one on the same volume and registered the same email
+again:
+
+```
+> docker volume create tasksdata
+tasksdata
+> docker run -d --rm --name tasks -p 8000:8000 -v tasksdata:/data tasks-api
+36e1234447498f5f428a4d2c781556305f2beaaceed44b6cdbc869930379f6b2
+> curl.exe -s localhost:8000/health
+{"ok":true}
+> curl.exe -s -X POST localhost:8000/auth/register -H "content-type: application/json" -d "{\"email\":\"docker@example.com\",\"password\":\"secret123\"}"
+{"id":1,"email":"docker@example.com","role":"user"}
+> docker stop tasks
+tasks
+> docker run -d --rm --name tasks -p 8000:8000 -v tasksdata:/data tasks-api
+76928d7e63b5c66da99b3de5bfcc78c10bf91fa0a0789b223d1c10f2cf538642
+> curl.exe -s -X POST localhost:8000/auth/register -H "content-type: application/json" -d "{\"email\":\"docker@example.com\",\"password\":\"secret123\"}"
+{"error":"email already registered"}
+> docker stop tasks
+tasks
+```
+
+The second container had never seen that user, yet it answered 409: the user was in
+`/data/tasks.db` on the `tasksdata` volume, not inside the container.
+
+**Smaller image and faster builds.** The dependencies are copied and cached before the
+source, so a code change does not download them again (all steps above were `CACHED`).
+Leaving `ui`, `tests` and `scripts` out keeps them out of the image. A further step would
+be `deno compile` into one binary on a small base image.
+
+**The permission flags** (instead of `-A`): `--allow-net` to listen on the port,
+`--allow-env` to read the configuration, `--allow-read` and `--allow-write` for the SQLite
+file and the migrations, `--allow-ffi` for libSQL's native library, and `--allow-sys`
+because libSQL asks for the OS name to load the right library. It runs as the user `deno`,
+not root, so a bug in the app cannot change the rest of the container.
 
 ### Bonus 18: Continuous integration
 
